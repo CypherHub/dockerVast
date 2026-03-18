@@ -61,39 +61,133 @@ Or push this repo to GitHub and run workflow **“GHCR — Vast ComfyUI”** (bu
 
 **Vast private image:** In Vast template, set Docker registry auth to GitHub (`ghcr.io`, user = GitHub username, token = PAT with `read:packages`).
 
-## 3. Vast template
+## 3. Vast template (quick reference)
 
-Use your image instead of `vastai/pytorch`:
+**Image:** `ghcr.io/<OWNER>/vast-comfyui:latest`
 
-**Image:** `ghcr.io/<OWNER>/vast-comfyui:latest` (or your tag)
+**On-start:** `bash /usr/local/bin/vast-onstart-comfyui.sh`
 
-**Ports / env** (same idea as before):
+See **§4** below for the full Vast walkthrough.
 
-- Ports: `1111, 6006, 8080, 8384, 8188, 72299`
-- Env (example):
+---
 
-  `OPEN_BUTTON_PORT=1111`, `OPEN_BUTTON_TOKEN=1`, `JUPYTER_DIR=/`, `DATA_DIRECTORY=/workspace/`,  
-  `PORTAL_CONFIG=localhost:1111:11111:/:Instance Portal|localhost:8080:18080:/:Jupyter|...`
+## 4. Using this image on Vast.ai (detailed)
 
-**Launch mode:** Jupyter + SSH + direct (or your usual Vast options).
+This section assumes your image is already on GHCR (e.g. **`ghcr.io/cypherhub/vast-comfyui:latest`** — replace with your org/user).
 
-**On-start command** (starts ComfyUI after instance is up; models under `/workspace`):
+### 4.1 Before you rent a GPU
+
+1. **Image exists:** In GitHub → your repo → **Actions** → confirm **GHCR — Vast ComfyUI** succeeded. In **Packages**, you should see `vast-comfyui`.
+2. **Vast can pull the image:**
+   - **Public package:** In GitHub → package **Package settings** → visibility **Public** (simplest for Vast).
+   - **Private package:** You must add **Docker registry authentication** on the template (see §4.6).
+
+### 4.2 Create a reusable template (Vast UI)
+
+1. Go to [vast.ai](https://vast.ai) → **Templates** (or start from **Search** and use **Create template** when configuring an instance).
+2. **Template name / description:** Anything you like (e.g. “ComfyUI GHCR”).
+3. **Docker image**  
+   - **Image:** `ghcr.io/<YOUR_GITHUB_USER_OR_ORG>/vast-comfyui:latest`  
+   - Example: `ghcr.io/cypherhub/vast-comfyui:latest`  
+   - **Version tag:** leave default or set `latest`.
+
+### 4.3 Ports
+
+Expose at least **8188** (ComfyUI). To match a typical Jupyter + portal setup like your old template, also expose:
+
+| Port  | Use |
+|-------|-----|
+| 8188  | **ComfyUI** (main UI) |
+| 8080  | Jupyter / terminal |
+| 1111  | Instance portal |
+| 6006  | TensorBoard |
+| 8384  | Syncthing |
+| 72299 | Extra (if you use Vast “open” links) |
+
+In the template **Docker options** / **Ports** field, you can use CLI-style port flags, e.g.:
+
+```text
+-p 1111:1111 -p 6006:6006 -p 8080:8080 -p 8384:8384 -p 8188:8188 -p 72299:72299
+```
+
+### 4.4 Environment variables (portal / Jupyter)
+
+These match the common Vast “portal” layout (adjust if you use a minimal template):
+
+```text
+OPEN_BUTTON_PORT=1111
+OPEN_BUTTON_TOKEN=1
+JUPYTER_DIR=/
+DATA_DIRECTORY=/workspace/
+PORTAL_CONFIG=localhost:1111:11111:/:Instance Portal|localhost:8080:18080:/:Jupyter|localhost:8080:8080:/terminals/1:Jupyter Terminal|localhost:8384:18384:/:Syncthing|localhost:6006:16006:/:Tensorboard
+```
+
+Paste **Name = value** pairs in the template’s environment section, or fold into `--env` on the CLI (see §4.8).
+
+### 4.5 Launch mode
+
+Choose what you’re used to:
+
+- **Jupyter Lab + SSH + Direct** — same class of setup as the original `vastai/pytorch` template; good for file upload and notebooks.
+- **SSH only** — lighter; you still get ComfyUI on 8188 if ports are mapped.
+
+**On-start command** (required so ComfyUI actually starts):
 
 ```bash
 bash /usr/local/bin/vast-onstart-comfyui.sh
 ```
 
-CLI-style:
+This script:
 
-```text
+- Ensures **`/workspace/models`** exists and **symlinks** ComfyUI’s `models` folder there so **checkpoints and LoRAs survive** instance stop/start when `/workspace` is on a persistent volume.
+- Starts ComfyUI in the background on **`0.0.0.0:8188`** with `--highvram`.
+- Logs to **`/workspace/comfyui.log`**.
+
+### 4.6 Private GHCR image (Docker login on Vast)
+
+If the package is **private**:
+
+1. Create a GitHub **fine-grained or classic PAT** with **`read:packages`**.
+2. In the Vast template, open **Docker Repository Authentication**:
+   - **Registry:** `ghcr.io`
+   - **Username:** your GitHub username
+   - **Password / token:** the PAT
+
+### 4.7 Disk and models
+
+- **Container disk:** e.g. **16 GB+** for the image layers; add more if you install extra tools at runtime.
+- **Models:** Stored under **`/workspace/models/...`** once ComfyUI runs. Use a Vast **volume** mapped to `/workspace` (or ensure your workflow keeps `/workspace` persistent) so you don’t re-download large checkpoints every time.
+
+### 4.8 After the instance is running
+
+1. Wait **1–3 minutes** after first boot (ComfyUI loads in background).
+2. **Open ComfyUI:** In Vast, use the exposed **8188** link (or your portal entry if you mapped it). URL is usually shown in the instance **Connect** / **Open** UI.
+3. **Check if ComfyUI is up:** SSH in and run:
+   - `tail -f /workspace/comfyui.log`
+   - `netstat -tuln | grep 8188` or `curl -s -o /dev/null -w "%{http_code}" http://127.0.0.1:8188/`
+4. **Jupyter / SSH:** Use the links/credentials Vast shows for the instance.
+
+### 4.9 CLI example (`vastai`)
+
+Replace `<OFFER_ID>` and image owner:
+
+```bash
 vastai create instance <OFFER_ID> \
-  --image ghcr.io/<OWNER>/vast-comfyui:latest \
-  --env '-p 1111:1111 -p 6006:6006 -p 8080:8080 -p 8384:8384 -p 8188:8188 -p 72299:72299 ...' \
+  --image ghcr.io/cypherhub/vast-comfyui:latest \
+  --env '-p 1111:1111 -p 6006:6006 -p 8080:8080 -p 8384:8384 -p 8188:8188 -p 72299:72299 -e OPEN_BUTTON_PORT=1111 -e OPEN_BUTTON_TOKEN=1 -e JUPYTER_DIR=/ -e DATA_DIRECTORY=/workspace/ -e PORTAL_CONFIG="localhost:1111:11111:/:Instance Portal|localhost:8080:18080:/:Jupyter|localhost:8080:8080:/terminals/1:Jupyter Terminal|localhost:8384:18384:/:Syncthing|localhost:6006:16006:/:Tensorboard"' \
   --onstart-cmd 'bash /usr/local/bin/vast-onstart-comfyui.sh' \
   --disk 16 --jupyter --ssh --direct
 ```
 
-ComfyUI logs: `/workspace/comfyui.log`.
+### 4.10 Troubleshooting
+
+| Problem | What to try |
+|---------|-------------|
+| Instance fails to pull image | Set package **public** or add **ghcr.io** auth (§4.6). |
+| ComfyUI won’t load | Read `/workspace/comfyui.log`; confirm port **8188** is published. |
+| Models missing after new instance | Use persistent **`/workspace`**; models live under `/workspace/models`. |
+
+ComfyUI logs: **`/workspace/comfyui.log`**.
 
 ## Notes
 
