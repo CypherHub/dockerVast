@@ -26,6 +26,16 @@ if [[ ! -s /workspace/models/insightface/inswapper_128.onnx ]]; then
     || curl -fsSL -o /workspace/models/insightface/inswapper_128.onnx "$INSWAP_URL"
 fi
 
+# Trellis2 DINOv3 — baked under ComfyUI/models/facebook; copy once to persistent /workspace.
+DINO="dinov3-vitl16-pretrain-lvd1689m"
+if [[ -d "$COMFY/models" && ! -L "$COMFY/models" && -d "$COMFY/models/facebook/$DINO" ]]; then
+  mkdir -p /workspace/models/facebook
+  if [[ ! -d "/workspace/models/facebook/$DINO" ]]; then
+    echo "[vast-onstart] Seeding DINOv3 ($DINO) from image to /workspace..."
+    cp -a "$COMFY/models/facebook/$DINO" "/workspace/models/facebook/"
+  fi
+fi
+
 if [[ -d "$COMFY/models" && ! -L "$COMFY/models" ]]; then
   rm -rf "$COMFY/models"
 fi

@@ -1,8 +1,8 @@
 # Vast.ai + GHCR — ComfyUI image
 
-Pre-bakes **ComfyUI** and the same **custom nodes** as your previous on-start script (Manager, Webhook, Crystools, LoadImageFromHttpURL, OpenAI, VideoHelperSuite, ReActor + pins). Models stay on **`/workspace/models`** via the bundled on-start script.
+Pre-bakes **ComfyUI**, **ComfyUI-Trellis2** ([Trellis.2](https://github.com/microsoft/TRELLIS.2) via [visualbruno/ComfyUI-Trellis2](https://github.com/visualbruno/ComfyUI-Trellis2)), Linux **Torch 2.7** wheels, **DINOv3** weights (`facebook/dinov3-vitl16-pretrain-lvd1689m`), plus Manager, Webhook, Crystools, LoadImageFromHttpURL, OpenAI, VideoHelperSuite, ReActor. Example workflows live under **`custom_nodes/ComfyUI-Trellis2/example_workflows/`** — load them after boot. Models (checkpoints, etc.) stay on **`/workspace/models`**; on-start seeds **insightface** + **DINOv3** from the image into `/workspace` before symlinking `ComfyUI/models`.
 
-**[ComfyUI-Trellis2](https://github.com/visualbruno/ComfyUI-Trellis2)** (Trellis.2 / 3D workflows) is **not baked into the image** — native wheels + `meshlib` fail reproducibly in headless GHCR builds. Use **§4.13** to install it over **SSH** on your Vast instance.
+**Base image:** `pytorch/pytorch:2.7.0-cuda12.8-cudnn9-runtime` — use a Vast GPU with a recent driver (CUDA 12.x–compatible).
 
 ## 0. Launch this on GitHub (repo + automatic image build)
 
@@ -216,33 +216,14 @@ pip install /workspace/mypackage.whl
 
 **Current on-start script:** ComfyUI is run inside a **loop** that waits **~10s** after exit and starts it again. Crash lines look like: `ComfyUI exited (code …); restarting in 10s…` in **`/workspace/comfyui.log`**.
 
-### 4.13 ComfyUI-Trellis2 — install on the running instance (SSH)
+### 4.13 ComfyUI-Trellis2 (included in image)
 
-Upstream: [visualbruno/ComfyUI-Trellis2](https://github.com/visualbruno/ComfyUI-Trellis2). Linux wheels are built for **Python 3.12 + PyTorch 2.7** (`wheels/Linux/Torch270/`). This image ships **PyTorch 2.5** — you must **upgrade torch** before the wheels will load (may affect ReActor / other nodes; test after).
+Trellis nodes, native wheels, and **DINOv3** are in the image. On first boot, on-start copies DINOv3 into **`/workspace/models/facebook/`** so it persists. Open example workflows from **`ComfyUI-Trellis2/example_workflows/`** in ComfyUI.
 
-```bash
-source /opt/ComfyUI/venv/bin/activate
-# Align with Trellis2 Linux wheels (pick an index that matches your CUDA; cu128 is typical for Torch 2.7):
-pip install --force-reinstall 'torch==2.7.0' 'torchvision==0.22.0' 'torchaudio==2.7.0' \
-  --index-url https://download.pytorch.org/whl/cu128
-
-cd /opt/ComfyUI/custom_nodes
-git clone --depth 1 https://github.com/visualbruno/ComfyUI-Trellis2.git ComfyUI-Trellis2
-W=ComfyUI-Trellis2/wheels/Linux/Torch270
-for f in "$W"/cumesh-*.whl "$W"/nvdiffrast-*.whl "$W"/nvdiffrec_render-*.whl "$W"/flex_gemm-*.whl "$W"/o_voxel-*.whl; do
-  [[ -f "$f" ]] && pip install "$f"
-done
-pip install -r ComfyUI-Trellis2/requirements.txt
-```
-
-**DINOv3** (required by Trellis2): clone [facebook/dinov3-vitl16-pretrain-lvd1689m](https://huggingface.co/facebook/dinov3-vitl16-pretrain-lvd1689m) into **`/workspace/models/facebook/dinov3-vitl16-pretrain-lvd1689m`** (on-start creates `models/facebook` under workspace).
-
-**Workflows:** after install, load JSON from **`custom_nodes/ComfyUI-Trellis2/example_workflows/`**.
-
-Restart ComfyUI: **`pkill -f "python main.py"`** (supervisor restarts it).
+To refresh the custom node: SSH, `cd /opt/ComfyUI/custom_nodes/ComfyUI-Trellis2 && git pull`, then `pkill -f "python main.py"`.
 
 ## Notes
 
-- Base image: `pytorch/pytorch:2.5.1-cuda12.4-cudnn9-runtime`. If that tag disappears, change the `FROM` line in `Dockerfile`.
+- Base image: **`pytorch/pytorch:2.7.0-cuda12.8-cudnn9-runtime`**. If that tag disappears, update `FROM` in `Dockerfile` and re-pin Torch to match Trellis `wheels/Linux/Torch270` (cp312).
 - First GPU run: confirm CUDA matches the host driver if you see driver errors.
 - ReActor `install.py` runs at image build time; rebuild the image to refresh face models bundled by that step.
