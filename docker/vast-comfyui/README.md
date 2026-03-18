@@ -1,8 +1,10 @@
 # Vast.ai + GHCR — ComfyUI image
 
-Pre-bakes **ComfyUI**, **ComfyUI-Trellis2** (Torch **2.7** Linux wheels), Manager, Webhook, Crystools, LoadImageFromHttpURL, OpenAI, VideoHelperSuite, ReActor. Example workflows: **`custom_nodes/ComfyUI-Trellis2/example_workflows/`**.
+Pre-bakes **ComfyUI**, PyTorch **2.7**, Manager, Webhook, Crystools, LoadImageFromHttpURL, OpenAI, VideoHelperSuite, ReActor.
 
-**DINOv3** for Trellis is **not in the image layer** (too large for reliable GHCR builds). On **first boot**, on-start downloads **`facebook/dinov3-vitl16-pretrain-lvd1689m`** into **`/workspace/models/facebook/`** (watch **`/workspace/dinov3-download.log`**). With a **persistent `/workspace` volume**, later boots skip the download. Then run Trellis workflows.
+**ComfyUI-Trellis2** is **not installed in the GHCR layer** (native `meshlib` / wheels break headless CI). On **first instance boot**, on-start runs **`install-trellis2-runtime.sh`** (log: **`/workspace/trellis2-install.log`**). With a **persistent `/workspace`**, marker **`/workspace/.trellis2_runtime_ok`** skips reinstall.
+
+**DINOv3** downloads on first boot too (**`/workspace/dinov3-download.log`**). After both finish, open workflows from **`custom_nodes/ComfyUI-Trellis2/example_workflows/`** and refresh ComfyUI.
 
 **Base image:** `pytorch/pytorch:2.7.0-cuda12.8-cudnn9-runtime` — use a Vast GPU with a recent driver (CUDA 12.x–compatible).
 
@@ -218,11 +220,9 @@ pip install /workspace/mypackage.whl
 
 **Current on-start script:** ComfyUI is run inside a **loop** that waits **~10s** after exit and starts it again. Crash lines look like: `ComfyUI exited (code …); restarting in 10s…` in **`/workspace/comfyui.log`**.
 
-### 4.13 ComfyUI-Trellis2 (included in image)
+### 4.13 ComfyUI-Trellis2 (first-boot on Vast)
 
-Trellis nodes, native wheels, and **DINOv3** are in the image. On first boot, on-start copies DINOv3 into **`/workspace/models/facebook/`** so it persists. Open example workflows from **`ComfyUI-Trellis2/example_workflows/`** in ComfyUI.
-
-To refresh the custom node: SSH, `cd /opt/ComfyUI/custom_nodes/ComfyUI-Trellis2 && git pull`, then `pkill -f "python main.py"`.
+Watch **`/workspace/trellis2-install.log`** and **`/workspace/dinov3-download.log`**. If Trellis install fails, SSH and run **`bash /usr/local/bin/install-trellis2-runtime.sh`** manually, then **`pkill -f "python main.py"`**.
 
 ## Notes
 

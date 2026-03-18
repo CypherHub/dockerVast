@@ -26,6 +26,17 @@ if [[ ! -s /workspace/models/insightface/inswapper_128.onnx ]]; then
     || curl -fsSL -o /workspace/models/insightface/inswapper_128.onnx "$INSWAP_URL"
 fi
 
+# ComfyUI-Trellis2 — pip/meshlib fails on GHCR runners; install once on Vast (see /workspace/trellis2-install.log).
+TMARK=/workspace/.trellis2_runtime_ok
+if [[ ! -f "$TMARK" ]]; then
+  echo "[vast-onstart] Installing ComfyUI-Trellis2 (first boot, several min)..."
+  if bash /usr/local/bin/install-trellis2-runtime.sh >> /workspace/trellis2-install.log 2>&1; then
+    touch "$TMARK"
+  else
+    echo "[vast-onstart] Trellis2 install failed — check /workspace/trellis2-install.log (will retry next boot)."
+  fi
+fi
+
 # Trellis2 DINOv3 — first boot only (marker on persistent /workspace).
 DINO_MARK=/workspace/models/facebook/.dinov3_vitl16_ready
 if [[ ! -f "$DINO_MARK" ]]; then
