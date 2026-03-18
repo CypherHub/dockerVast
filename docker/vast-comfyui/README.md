@@ -186,6 +186,7 @@ vastai create instance <OFFER_ID> \
 | Instance fails to pull image | Set package **public** or add **ghcr.io** auth (§4.6). |
 | ComfyUI won’t load | Read `/workspace/comfyui.log`; confirm port **8188** is published. |
 | Models missing after new instance | Use persistent **`/workspace`**; models live under `/workspace/models`. |
+| ReActor: `inswapper_128.onnx` not in `[]` | On-start copies/downloads **`/workspace/models/insightface/inswapper_128.onnx`** before linking models. Recreate the instance or restart after pulling a newer image; or download that file into `models/insightface` manually. |
 
 ComfyUI logs: **`/workspace/comfyui.log`**.
 
