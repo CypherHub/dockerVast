@@ -9,17 +9,19 @@ ENV DEBIAN_FRONTEND=noninteractive \
 
 RUN apt-get update && apt-get install -y --no-install-recommends \
     git ca-certificates build-essential cmake pkg-config \
-    libgl1 libglib2.0-0 net-tools cron nano wget \
+    libgl1 libglib2.0-0 libsm6 libxext6 libgomp1 \
+    ffmpeg libavcodec-dev libavformat-dev libavutil-dev \
+    net-tools cron nano wget \
     && rm -rf /var/lib/apt/lists/*
 
 COPY pin-torch27.sh /usr/local/bin/pin-torch27.sh
 RUN chmod +x /usr/local/bin/pin-torch27.sh
 
 WORKDIR /opt
-# Clean venv (no system-site-packages) so only pip-installed Torch 2.7 is used (Trellis wheels).
+# venv inherits conda PyTorch 2.7; we re-pin after pip stages so Trellis cumesh stays ABI-matched.
 RUN git clone --depth 1 https://github.com/comfyanonymous/ComfyUI.git ComfyUI \
     && cd ComfyUI \
-    && python -m venv venv \
+    && python -m venv venv --system-site-packages \
     && . venv/bin/activate \
     && pip install -U pip setuptools wheel huggingface_hub \
     && pip install --no-cache-dir \
@@ -29,18 +31,6 @@ RUN git clone --depth 1 https://github.com/comfyanonymous/ComfyUI.git ComfyUI \
     && sed '/^torch$/d; /^torchvision$/d; /^torchaudio$/d' requirements.txt > /tmp/r.txt \
     && pip install --no-cache-dir -r /tmp/r.txt \
     && /usr/local/bin/pin-torch27.sh
-
-RUN cd /opt/ComfyUI && . venv/bin/activate \
-    && mkdir -p models/facebook \
-    && python <<'PY'
-from huggingface_hub import snapshot_download
-snapshot_download(
-    repo_id="facebook/dinov3-vitl16-pretrain-lvd1689m",
-    local_dir="models/facebook/dinov3-vitl16-pretrain-lvd1689m",
-    local_dir_use_symlinks=False,
-)
-print("dinov3 snapshot OK")
-PY
 
 COPY install-nodes.sh /tmp/install-nodes.sh
 RUN chmod +x /tmp/install-nodes.sh \
@@ -55,6 +45,19 @@ RUN chmod +x /tmp/install-trellis2.sh \
     && bash /tmp/install-trellis2.sh \
     && /usr/local/bin/pin-torch27.sh \
     && rm /tmp/install-trellis2.sh
+
+# Large HF download last (fail Trellis/native deps first).
+RUN cd /opt/ComfyUI && . venv/bin/activate \
+    && mkdir -p models/facebook \
+    && python <<'PY'
+from huggingface_hub import snapshot_download
+snapshot_download(
+    repo_id="facebook/dinov3-vitl16-pretrain-lvd1689m",
+    local_dir="models/facebook/dinov3-vitl16-pretrain-lvd1689m",
+    local_dir_use_symlinks=False,
+)
+print("dinov3 snapshot OK")
+PY
 
 COPY vast-onstart-comfyui.sh /usr/local/bin/vast-onstart-comfyui.sh
 RUN chmod +x /usr/local/bin/vast-onstart-comfyui.sh

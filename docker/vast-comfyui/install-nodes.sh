@@ -34,7 +34,7 @@ if [[ -f ComfyUI-ReActor/scripts/reactor_sfw.py ]]; then
   sed -i '54s/return True/return False/' ComfyUI-ReActor/scripts/reactor_sfw.py || true
 fi
 pip install -r ComfyUI-ReActor/requirements.txt
-pip install "onnxruntime-gpu==1.17.0" insightface
+pip install "onnxruntime-gpu>=1.17.0" insightface || pip install onnxruntime insightface
 ( cd ComfyUI-ReActor && python install.py )
 
 cd /opt/ComfyUI

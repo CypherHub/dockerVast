@@ -21,4 +21,4 @@ shopt -u nullglob
 
 pip install --no-cache-dir -r custom_nodes/ComfyUI-Trellis2/requirements.txt
 
-python -c "import cumesh, o_voxel, meshlib.mrmeshpy, nvdiffrast.torch as dr; print('[install-trellis2] import OK')"
+python -c "import cumesh, o_voxel, meshlib.mrmeshpy, nvdiffrast.torch; print('[install-trellis2] import OK')"
