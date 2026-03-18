@@ -1,8 +1,8 @@
 # Vast.ai + GHCR — ComfyUI image
 
-Pre-bakes **ComfyUI** and the same **custom nodes** as your previous on-start script (Manager, Webhook, Crystools, LoadImageFromHttpURL, OpenAI, VideoHelperSuite, ReActor + pins), plus **[ComfyUI-Trellis2](https://github.com/visualbruno/ComfyUI-Trellis2)** (Trellis.2 3D workflows). Models stay on **`/workspace/models`** via the bundled on-start script.
+Pre-bakes **ComfyUI** and the same **custom nodes** as your previous on-start script (Manager, Webhook, Crystools, LoadImageFromHttpURL, OpenAI, VideoHelperSuite, ReActor + pins). Models stay on **`/workspace/models`** via the bundled on-start script.
 
-**Trellis2 / DINOv3:** put Hugging Face model **`facebook/dinov3-vitl16-pretrain-lvd1689m`** under **`/workspace/models/facebook/dinov3-vitl16-pretrain-lvd1689m`** (see Trellis2 README). Example workflows ship in **`custom_nodes/ComfyUI-Trellis2/example_workflows/`**.
+**[ComfyUI-Trellis2](https://github.com/visualbruno/ComfyUI-Trellis2)** (Trellis.2 / 3D workflows) is **not baked into the image** — native wheels + `meshlib` fail reproducibly in headless GHCR builds. Use **§4.13** to install it over **SSH** on your Vast instance.
 
 ## 0. Launch this on GitHub (repo + automatic image build)
 
@@ -216,8 +216,33 @@ pip install /workspace/mypackage.whl
 
 **Current on-start script:** ComfyUI is run inside a **loop** that waits **~10s** after exit and starts it again. Crash lines look like: `ComfyUI exited (code …); restarting in 10s…` in **`/workspace/comfyui.log`**.
 
+### 4.13 ComfyUI-Trellis2 — install on the running instance (SSH)
+
+Upstream: [visualbruno/ComfyUI-Trellis2](https://github.com/visualbruno/ComfyUI-Trellis2). Linux wheels are built for **Python 3.12 + PyTorch 2.7** (`wheels/Linux/Torch270/`). This image ships **PyTorch 2.5** — you must **upgrade torch** before the wheels will load (may affect ReActor / other nodes; test after).
+
+```bash
+source /opt/ComfyUI/venv/bin/activate
+# Align with Trellis2 Linux wheels (pick an index that matches your CUDA; cu128 is typical for Torch 2.7):
+pip install --force-reinstall 'torch==2.7.0' 'torchvision==0.22.0' 'torchaudio==2.7.0' \
+  --index-url https://download.pytorch.org/whl/cu128
+
+cd /opt/ComfyUI/custom_nodes
+git clone --depth 1 https://github.com/visualbruno/ComfyUI-Trellis2.git ComfyUI-Trellis2
+W=ComfyUI-Trellis2/wheels/Linux/Torch270
+for f in "$W"/cumesh-*.whl "$W"/nvdiffrast-*.whl "$W"/nvdiffrec_render-*.whl "$W"/flex_gemm-*.whl "$W"/o_voxel-*.whl; do
+  [[ -f "$f" ]] && pip install "$f"
+done
+pip install -r ComfyUI-Trellis2/requirements.txt
+```
+
+**DINOv3** (required by Trellis2): clone [facebook/dinov3-vitl16-pretrain-lvd1689m](https://huggingface.co/facebook/dinov3-vitl16-pretrain-lvd1689m) into **`/workspace/models/facebook/dinov3-vitl16-pretrain-lvd1689m`** (on-start creates `models/facebook` under workspace).
+
+**Workflows:** after install, load JSON from **`custom_nodes/ComfyUI-Trellis2/example_workflows/`**.
+
+Restart ComfyUI: **`pkill -f "python main.py"`** (supervisor restarts it).
+
 ## Notes
 
-- Base image: **`pytorch/pytorch:2.7.0-cuda12.8-cudnn9-runtime`** (needed for Trellis2 Linux wheels). Vast hosts need a driver that can run CUDA 12.8–class images (typical recent GPUs).
+- Base image: `pytorch/pytorch:2.5.1-cuda12.4-cudnn9-runtime`. If that tag disappears, change the `FROM` line in `Dockerfile`.
 - First GPU run: confirm CUDA matches the host driver if you see driver errors.
 - ReActor `install.py` runs at image build time; rebuild the image to refresh face models bundled by that step.
