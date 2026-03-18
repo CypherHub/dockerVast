@@ -6,7 +6,7 @@ mkdir -p /workspace/models/checkpoints /workspace/models/clip /workspace/models/
   /workspace/models/embeddings /workspace/models/configs /workspace/models/vae_approx \
   /workspace/models/diffusers /workspace/models/gligen /workspace/models/hypernetworks \
   /workspace/models/photomaker /workspace/models/style_models /workspace/models/text_encoders \
-  /workspace/models/insightface
+  /workspace/models/insightface /workspace/models/facebook
 
 COMFY="/opt/ComfyUI"
 # ReActor installs inswapper_128.onnx under ComfyUI/models/insightface at image build time.

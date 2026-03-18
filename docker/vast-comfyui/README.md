@@ -1,6 +1,8 @@
 # Vast.ai + GHCR — ComfyUI image
 
-Pre-bakes **ComfyUI** and the same **custom nodes** as your previous on-start script (Manager, Webhook, Crystools, LoadImageFromHttpURL, OpenAI, VideoHelperSuite, ReActor + pins). Models stay on **`/workspace/models`** via the bundled on-start script.
+Pre-bakes **ComfyUI** and the same **custom nodes** as your previous on-start script (Manager, Webhook, Crystools, LoadImageFromHttpURL, OpenAI, VideoHelperSuite, ReActor + pins), plus **[ComfyUI-Trellis2](https://github.com/visualbruno/ComfyUI-Trellis2)** (Trellis.2 3D workflows). Models stay on **`/workspace/models`** via the bundled on-start script.
+
+**Trellis2 / DINOv3:** put Hugging Face model **`facebook/dinov3-vitl16-pretrain-lvd1689m`** under **`/workspace/models/facebook/dinov3-vitl16-pretrain-lvd1689m`** (see Trellis2 README). Example workflows ship in **`custom_nodes/ComfyUI-Trellis2/example_workflows/`**.
 
 ## 0. Launch this on GitHub (repo + automatic image build)
 
@@ -216,6 +218,6 @@ pip install /workspace/mypackage.whl
 
 ## Notes
 
-- Base image: `pytorch/pytorch:2.5.1-cuda12.4-cudnn9-runtime`. If that tag disappears, change the `FROM` line in `Dockerfile`.
+- Base image: **`pytorch/pytorch:2.7.0-cuda12.8-cudnn9-runtime`** (needed for Trellis2 Linux wheels). Vast hosts need a driver that can run CUDA 12.8–class images (typical recent GPUs).
 - First GPU run: confirm CUDA matches the host driver if you see driver errors.
 - ReActor `install.py` runs at image build time; rebuild the image to refresh face models bundled by that step.
