@@ -46,18 +46,7 @@ RUN chmod +x /tmp/install-trellis2.sh \
     && /usr/local/bin/pin-torch27.sh \
     && rm /tmp/install-trellis2.sh
 
-# Large HF download last (fail Trellis/native deps first).
-RUN cd /opt/ComfyUI && . venv/bin/activate \
-    && mkdir -p models/facebook \
-    && python <<'PY'
-from huggingface_hub import snapshot_download
-snapshot_download(
-    repo_id="facebook/dinov3-vitl16-pretrain-lvd1689m",
-    local_dir="models/facebook/dinov3-vitl16-pretrain-lvd1689m",
-    local_dir_use_symlinks=False,
-)
-print("dinov3 snapshot OK")
-PY
+# DINOv3 is ~GB; HF in CI is flaky/slow — on-start downloads once to /workspace (see vast-onstart-comfyui.sh).
 
 COPY vast-onstart-comfyui.sh /usr/local/bin/vast-onstart-comfyui.sh
 RUN chmod +x /usr/local/bin/vast-onstart-comfyui.sh

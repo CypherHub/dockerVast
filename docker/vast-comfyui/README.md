@@ -1,6 +1,8 @@
 # Vast.ai + GHCR — ComfyUI image
 
-Pre-bakes **ComfyUI**, **ComfyUI-Trellis2** ([Trellis.2](https://github.com/microsoft/TRELLIS.2) via [visualbruno/ComfyUI-Trellis2](https://github.com/visualbruno/ComfyUI-Trellis2)), Linux **Torch 2.7** wheels, **DINOv3** weights (`facebook/dinov3-vitl16-pretrain-lvd1689m`), plus Manager, Webhook, Crystools, LoadImageFromHttpURL, OpenAI, VideoHelperSuite, ReActor. Example workflows live under **`custom_nodes/ComfyUI-Trellis2/example_workflows/`** — load them after boot. Models (checkpoints, etc.) stay on **`/workspace/models`**; on-start seeds **insightface** + **DINOv3** from the image into `/workspace` before symlinking `ComfyUI/models`.
+Pre-bakes **ComfyUI**, **ComfyUI-Trellis2** (Torch **2.7** Linux wheels), Manager, Webhook, Crystools, LoadImageFromHttpURL, OpenAI, VideoHelperSuite, ReActor. Example workflows: **`custom_nodes/ComfyUI-Trellis2/example_workflows/`**.
+
+**DINOv3** for Trellis is **not in the image layer** (too large for reliable GHCR builds). On **first boot**, on-start downloads **`facebook/dinov3-vitl16-pretrain-lvd1689m`** into **`/workspace/models/facebook/`** (watch **`/workspace/dinov3-download.log`**). With a **persistent `/workspace` volume**, later boots skip the download. Then run Trellis workflows.
 
 **Base image:** `pytorch/pytorch:2.7.0-cuda12.8-cudnn9-runtime` — use a Vast GPU with a recent driver (CUDA 12.x–compatible).
 

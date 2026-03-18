@@ -26,14 +26,25 @@ if [[ ! -s /workspace/models/insightface/inswapper_128.onnx ]]; then
     || curl -fsSL -o /workspace/models/insightface/inswapper_128.onnx "$INSWAP_URL"
 fi
 
-# Trellis2 DINOv3 — baked under ComfyUI/models/facebook; copy once to persistent /workspace.
-DINO="dinov3-vitl16-pretrain-lvd1689m"
-if [[ -d "$COMFY/models" && ! -L "$COMFY/models" && -d "$COMFY/models/facebook/$DINO" ]]; then
+# Trellis2 DINOv3 — first boot only (marker on persistent /workspace).
+DINO_MARK=/workspace/models/facebook/.dinov3_vitl16_ready
+if [[ ! -f "$DINO_MARK" ]]; then
+  echo "[vast-onstart] Downloading DINOv3 for Trellis2 (first run, large — /workspace/dinov3-download.log)..."
   mkdir -p /workspace/models/facebook
-  if [[ ! -d "/workspace/models/facebook/$DINO" ]]; then
-    echo "[vast-onstart] Seeding DINOv3 ($DINO) from image to /workspace..."
-    cp -a "$COMFY/models/facebook/$DINO" "/workspace/models/facebook/"
-  fi
+  # shellcheck source=/dev/null
+  source "$COMFY/venv/bin/activate"
+  pip install -q huggingface_hub 2>/dev/null || true
+  python - <<'PY' >> /workspace/dinov3-download.log 2>&1
+from huggingface_hub import snapshot_download
+dest = "/workspace/models/facebook/dinov3-vitl16-pretrain-lvd1689m"
+snapshot_download(
+    repo_id="facebook/dinov3-vitl16-pretrain-lvd1689m",
+    local_dir=dest,
+    local_dir_use_symlinks=False,
+)
+open("/workspace/models/facebook/.dinov3_vitl16_ready", "w").write("ok\n")
+print("DINOv3 OK", dest)
+PY
 fi
 
 if [[ -d "$COMFY/models" && ! -L "$COMFY/models" ]]; then

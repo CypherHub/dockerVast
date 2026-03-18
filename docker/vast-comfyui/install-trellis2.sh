@@ -20,5 +20,4 @@ done
 shopt -u nullglob
 
 pip install --no-cache-dir -r custom_nodes/ComfyUI-Trellis2/requirements.txt
-
-python -c "import cumesh, o_voxel, meshlib.mrmeshpy, nvdiffrast.torch; print('[install-trellis2] import OK')"
+# Import check omitted: some wheels need GPU at runtime; build hosts are CPU-only.
