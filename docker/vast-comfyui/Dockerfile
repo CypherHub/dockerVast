@@ -12,19 +12,16 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /opt
-# Trellis2 Linux wheels target Torch 2.7 + cp312; ComfyUI requirements.txt has unpinned `torch` which
-# would otherwise pull 2.8+ and break cumesh/nvdiffrast ABI.
+# Install ComfyUI deps first, then force Torch 2.7.x to match Trellis2 prebuilt Linux wheels (pip would pull 2.8+).
 RUN git clone --depth 1 https://github.com/comfyanonymous/ComfyUI.git ComfyUI \
     && cd ComfyUI \
     && python -m venv venv --system-site-packages \
     && . venv/bin/activate \
     && pip install -U pip setuptools wheel \
-    && printf '%s\n' \
-         'torch==2.7.0' \
-         'torchvision==0.22.0' \
-         'torchaudio==2.7.0' \
-       > /tmp/torch-constraints.txt \
-    && pip install -c /tmp/torch-constraints.txt -r requirements.txt
+    && pip install -r requirements.txt \
+    && pip install --force-reinstall --no-cache-dir \
+         'torch==2.7.0' 'torchvision==0.22.0' 'torchaudio==2.7.0' \
+         --index-url https://download.pytorch.org/whl/cu128
 
 COPY install-nodes.sh /tmp/install-nodes.sh
 COPY install-trellis2.sh /tmp/install-trellis2.sh
