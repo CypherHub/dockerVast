@@ -31,13 +31,19 @@ if [[ -d "$COMFY/models" && ! -L "$COMFY/models" ]]; then
 fi
 ln -sfn /workspace/models "$COMFY/models"
 
-cd "$COMFY"
-# shellcheck source=/dev/null
-source venv/bin/activate
 if netstat -tuln 2>/dev/null | grep -q ':8188 '; then
   echo "Port 8188 already in use; skipping ComfyUI start."
   exit 0
 fi
-nohup python main.py --listen 0.0.0.0 --port 8188 --highvram >> /workspace/comfyui.log 2>&1 &
-echo "ComfyUI starting on 8188 (logs: /workspace/comfyui.log)"
+# nohup + detached bash: survives on-start script exit (SIGHUP). Restart loop after crashes.
+nohup bash -c '
+  cd /opt/ComfyUI && source venv/bin/activate
+  while true; do
+    python main.py --listen 0.0.0.0 --port 8188 --highvram >> /workspace/comfyui.log 2>&1
+    ec=$?
+    echo "[$(date -Iseconds)] ComfyUI exited (code ${ec}); restarting in 10s..." >> /workspace/comfyui.log
+    sleep 10
+  done
+' >/dev/null 2>&1 &
+echo "ComfyUI supervisor on 8188 (auto-restart on crash; logs: /workspace/comfyui.log)"
 exit 0

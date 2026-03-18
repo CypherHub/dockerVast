@@ -190,6 +190,30 @@ vastai create instance <OFFER_ID> \
 
 ComfyUI logs: **`/workspace/comfyui.log`**.
 
+### 4.11 SSH — install a custom wheel (ComfyUI’s Python only)
+
+ComfyUI runs with **`/opt/ComfyUI/venv`** — not system Python. Over SSH:
+
+```bash
+# Copy mypackage.whl to /workspace (scp / Jupyter upload), then:
+/opt/ComfyUI/venv/bin/pip install /workspace/mypackage.whl
+```
+
+Or:
+
+```bash
+source /opt/ComfyUI/venv/bin/activate
+pip install /workspace/mypackage.whl
+```
+
+**Pick up new installs:** stop the running ComfyUI process (e.g. `pkill -f "python main.py"`). With a **current** image, the on-start **supervisor** brings ComfyUI back within ~10s. Otherwise restart the instance.
+
+### 4.12 Does port 8188 / ComfyUI restart after a crash?
+
+**Images before the supervisor change:** No — one `nohup` run; if ComfyUI died, 8188 stayed down until you rebooted the instance.
+
+**Current on-start script:** ComfyUI is run inside a **loop** that waits **~10s** after exit and starts it again. Crash lines look like: `ComfyUI exited (code …); restarting in 10s…` in **`/workspace/comfyui.log`**.
+
 ## Notes
 
 - Base image: `pytorch/pytorch:2.5.1-cuda12.4-cudnn9-runtime`. If that tag disappears, change the `FROM` line in `Dockerfile`.
