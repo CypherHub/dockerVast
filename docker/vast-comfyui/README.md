@@ -185,7 +185,11 @@ vastai create instance <OFFER_ID> \
   --disk 16 --jupyter --ssh --direct
 ```
 
-### 4.10 Troubleshooting
+### 4.10 ComfyUI not running
+
+If ComfyUI never appears on port 8188, check **`/workspace/comfyui.log`** for Python errors. The on-start script now **starts ComfyUI first** (right after the models symlink), then runs Trellis2 install and DINOv3 download in the background — so a slow or failing Trellis/DINO step no longer blocks or aborts startup. If you see repeated restarts in the log, the cause is usually a missing dependency or CUDA/driver mismatch; run the same `python main.py …` command by hand in `/opt/ComfyUI` with the venv activated to see the traceback.
+
+### 4.11 Troubleshooting (general)
 
 | Problem | What to try |
 |---------|-------------|
@@ -196,7 +200,7 @@ vastai create instance <OFFER_ID> \
 
 ComfyUI logs: **`/workspace/comfyui.log`**.
 
-### 4.11 SSH — install a custom wheel (ComfyUI’s Python only)
+### 4.12 SSH — install a custom wheel (ComfyUI’s Python only)
 
 ComfyUI runs with **`/opt/ComfyUI/venv`** — not system Python. Over SSH:
 
@@ -214,17 +218,17 @@ pip install /workspace/mypackage.whl
 
 **Pick up new installs:** stop the running ComfyUI process (e.g. `pkill -f "python main.py"`). With a **current** image, the on-start **supervisor** brings ComfyUI back within ~10s. Otherwise restart the instance.
 
-### 4.12 Does port 8188 / ComfyUI restart after a crash?
+### 4.13 Does port 8188 / ComfyUI restart after a crash?
 
 **Images before the supervisor change:** No — one `nohup` run; if ComfyUI died, 8188 stayed down until you rebooted the instance.
 
 **Current on-start script:** ComfyUI is run inside a **loop** that waits **~10s** after exit and starts it again. Crash lines look like: `ComfyUI exited (code …); restarting in 10s…` in **`/workspace/comfyui.log`**.
 
-### 4.13 ComfyUI-Trellis2 (first-boot on Vast)
+### 4.14 ComfyUI-Trellis2 (first-boot on Vast)
 
 Watch **`/workspace/trellis2-install.log`** and **`/workspace/dinov3-download.log`**. If Trellis install fails, SSH and run **`bash /usr/local/bin/install-trellis2-runtime.sh`** manually, then **`pkill -f "python main.py"`**.
 
-### 4.14 SSH key for remoting in (troubleshooting)
+### 4.15 SSH key for remoting in (troubleshooting)
 
 The image includes **openssh-server** and the on-start script starts **sshd** so you can SSH into every new VM. To use it:
 
