@@ -1,6 +1,8 @@
 #!/usr/bin/env bash
 # Vast.ai on-start: map models to persistent /workspace and start ComfyUI in background.
 set -euo pipefail
+mkdir -p /workspace
+echo "[$(date -Iseconds)] vast-onstart-comfyui.sh starting" >> /workspace/onstart.log
 # SSH: so the public key you add in Vast is accepted on every new VM.
 if command -v sshd >/dev/null 2>&1; then
   /usr/sbin/sshd 2>/dev/null || service ssh start 2>/dev/null || true
@@ -26,8 +28,10 @@ fi
 INSWAP_URL="https://huggingface.co/datasets/Gourieff/ReActor/resolve/main/models/inswapper_128.onnx"
 if [[ ! -s /workspace/models/insightface/inswapper_128.onnx ]]; then
   echo "[vast-onstart] Downloading inswapper_128.onnx for ComfyUI-ReActor..."
-  wget -q -T 120 -O /workspace/models/insightface/inswapper_128.onnx "$INSWAP_URL" \
-    || curl -fsSL -o /workspace/models/insightface/inswapper_128.onnx "$INSWAP_URL"
+  if ! wget -q -T 120 -O /workspace/models/insightface/inswapper_128.onnx "$INSWAP_URL" \
+    && ! curl -fsSL -o /workspace/models/insightface/inswapper_128.onnx "$INSWAP_URL"; then
+    echo "[vast-onstart] WARN: inswapper download failed (ReActor may error); continuing ComfyUI start." | tee -a /workspace/onstart.log
+  fi
 fi
 
 # Models symlink first so ComfyUI can start without waiting for Trellis2/DINOv3.
@@ -36,8 +40,16 @@ if [[ -d "$COMFY/models" && ! -L "$COMFY/models" ]]; then
 fi
 ln -sfn /workspace/models "$COMFY/models"
 
-if netstat -tuln 2>/dev/null | grep -q ':8188 '; then
-  echo "Port 8188 already in use; skipping ComfyUI start."
+# Detect listener on 8188 (avoid false negatives from netstat column layout).
+_port8188_in_use() {
+  if command -v ss >/dev/null 2>&1; then
+    ss -tuln 2>/dev/null | grep -qE ':(8188)\b'
+    return $?
+  fi
+  netstat -tuln 2>/dev/null | grep -qE ':(8188)\b'
+}
+if _port8188_in_use; then
+  echo "Port 8188 already in use; skipping ComfyUI start." | tee -a /workspace/onstart.log
 else
   # Start ComfyUI first so 8188 is up quickly; Trellis2/DINOv3 run in background and must not block.
   nohup bash -c '
@@ -49,7 +61,7 @@ else
       sleep 10
     done
   ' >/dev/null 2>&1 &
-  echo "ComfyUI supervisor on 8188 (auto-restart on crash; logs: /workspace/comfyui.log)"
+  echo "ComfyUI supervisor on 8188 (auto-restart on crash; logs: /workspace/comfyui.log)" | tee -a /workspace/onstart.log
 fi
 
 # Trellis2 + DINOv3: first-boot only, run in background so they never block or abort on-start.
