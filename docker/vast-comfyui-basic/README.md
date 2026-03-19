@@ -2,7 +2,7 @@
 
 GHCR: **`ghcr.io/<OWNER>/vast-comfyui-basic:latest`** (+ SHA tags from Actions).
 
-Same ComfyUI stack as **`vast-comfyui`** (Manager, Webhook, Crystools, ReActor, etc.) but **no** ComfyUI-Trellis2 first-boot install and **no** DINOv3 download. Use this template when you only need standard Comfy workflows.
+The **Dockerfile matches `docker/vast-comfyui`** (same ComfyUI stack, same `install-trellis2-runtime.sh` in the image). The only difference for **ComfyBasicInstall** is the Vast **on-start** script: **`vast-onstart-comfyui-basic.sh`** does **not** run Trellis2/DINOv3 on boot — same behavior as the single image you had before the split, when you don’t need Trellis.
 
 **Vast On-start** (after `entrypoint.sh` if using Jupyter):
 

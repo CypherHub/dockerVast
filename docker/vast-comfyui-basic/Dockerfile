@@ -1,4 +1,5 @@
-# ComfyBasicInstall: ComfyUI + same custom nodes as vast-comfyui, no Trellis2 runtime on-start.
+# ComfyBasicInstall: **Same image layers as** docker/vast-comfyui (ComfyBasicPlusTrellis).
+# Only behavioral difference: use `vast-onstart-comfyui-basic.sh` on Vast (no Trellis2/DINO on boot).
 # Build: docker build -t ghcr.io/<OWNER>/vast-comfyui-basic:latest .
 FROM pytorch/pytorch:2.7.0-cuda12.8-cudnn9-runtime
 
@@ -16,6 +17,9 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 
 COPY pin-torch27.sh /usr/local/bin/pin-torch27.sh
 RUN chmod +x /usr/local/bin/pin-torch27.sh
+
+COPY install-trellis2-runtime.sh /usr/local/bin/install-trellis2-runtime.sh
+RUN chmod +x /usr/local/bin/install-trellis2-runtime.sh
 
 WORKDIR /opt
 RUN git clone --depth 1 https://github.com/comfyanonymous/ComfyUI.git ComfyUI \
@@ -37,6 +41,10 @@ RUN chmod +x /tmp/install-nodes.sh \
     && bash /tmp/install-nodes.sh \
     && /usr/local/bin/pin-torch27.sh \
     && rm /tmp/install-nodes.sh
+
+# PlusTrellis entrypoint (optional manual use); Basic template uses *-basic.sh below.
+COPY vast-onstart-comfyui.sh /usr/local/bin/vast-onstart-comfyui.sh
+RUN chmod +x /usr/local/bin/vast-onstart-comfyui.sh
 
 COPY vast-onstart-comfyui-basic.sh /usr/local/bin/vast-onstart-comfyui-basic.sh
 RUN chmod +x /usr/local/bin/vast-onstart-comfyui-basic.sh

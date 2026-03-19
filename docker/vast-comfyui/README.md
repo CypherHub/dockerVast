@@ -7,7 +7,7 @@
 | **ComfyBasicInstall** | `ghcr.io/<OWNER>/vast-comfyui-basic` | `bash /usr/local/bin/vast-onstart-comfyui-basic.sh` |
 | **ComfyBasicPlusTrellis** | `ghcr.io/<OWNER>/vast-comfyui` | `bash /usr/local/bin/vast-onstart-comfyui.sh` |
 
-**Basic** = same Comfy + nodes, **no** Trellis2/DINOv3 first-boot jobs. **PlusTrellis** = adds background Trellis2 install + DINOv3 (see below). Dockerfile folders: `docker/vast-comfyui-basic/` and `docker/vast-comfyui/`.
+**Basic** = **same Dockerfile layers** as Plus (including `install-trellis2-runtime.sh` in the image); use **`vast-onstart-comfyui-basic.sh`** on Vast so **no** Trellis2/DINOv3 runs on boot. **PlusTrellis** = **`vast-onstart-comfyui.sh`** (background Trellis2 + DINOv3). Folders: `docker/vast-comfyui-basic/` and `docker/vast-comfyui/`.
 
 ---
 
