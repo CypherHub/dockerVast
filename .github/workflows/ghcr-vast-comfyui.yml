@@ -1,4 +1,4 @@
-# Publishes docker/vast-comfyui to GHCR. Adjust image name via workflow env if needed.
+# Publishes docker/vast-comfyui (PlusTrellis) and docker/vast-comfyui-basic (Basic) to GHCR.
 name: GHCR — Vast ComfyUI
 
 on:
@@ -7,14 +7,20 @@ on:
     branches: [main, master]
     paths:
       - "docker/vast-comfyui/**"
+      - "docker/vast-comfyui-basic/**"
       - ".github/workflows/ghcr-vast-comfyui.yml"
-
-env:
-  IMAGE_NAME: vast-comfyui
 
 jobs:
   build-push:
     runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - context: docker/vast-comfyui
+            image_name: vast-comfyui
+          - context: docker/vast-comfyui-basic
+            image_name: vast-comfyui-basic
     permissions:
       contents: read
       packages: write
@@ -35,7 +41,7 @@ jobs:
         id: meta
         uses: docker/metadata-action@v5
         with:
-          images: ghcr.io/${{ github.repository_owner }}/${{ env.IMAGE_NAME }}
+          images: ghcr.io/${{ github.repository_owner }}/${{ matrix.image_name }}
           tags: |
             type=raw,value=latest,enable={{is_default_branch}}
             type=sha,prefix=
@@ -43,9 +49,9 @@ jobs:
       - name: Build and push
         uses: docker/build-push-action@v6
         with:
-          context: docker/vast-comfyui
+          context: ${{ matrix.context }}
           push: true
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
+          cache-from: type=gha,scope=${{ matrix.image_name }}
+          cache-to: type=gha,mode=max,scope=${{ matrix.image_name }}

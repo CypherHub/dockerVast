@@ -1,5 +1,16 @@
 # Vast.ai + GHCR — ComfyUI image
 
+## Two GHCR images (same Actions workflow)
+
+| Board name | GHCR image | On-start script |
+|------------|------------|-----------------|
+| **ComfyBasicInstall** | `ghcr.io/<OWNER>/vast-comfyui-basic` | `bash /usr/local/bin/vast-onstart-comfyui-basic.sh` |
+| **ComfyBasicPlusTrellis** | `ghcr.io/<OWNER>/vast-comfyui` | `bash /usr/local/bin/vast-onstart-comfyui.sh` |
+
+**Basic** = same Comfy + nodes, **no** Trellis2/DINOv3 first-boot jobs. **PlusTrellis** = adds background Trellis2 install + DINOv3 (see below). Dockerfile folders: `docker/vast-comfyui-basic/` and `docker/vast-comfyui/`.
+
+---
+
 Pre-bakes **ComfyUI**, PyTorch **2.7**, Manager, Webhook, Crystools, LoadImageFromHttpURL, OpenAI, VideoHelperSuite, ReActor.
 
 **ComfyUI-Trellis2** is **not installed in the GHCR layer** (native `meshlib` / wheels break headless CI). On **first instance boot**, on-start runs **`install-trellis2-runtime.sh`** (log: **`/workspace/trellis2-install.log`**). With a **persistent `/workspace`**, marker **`/workspace/.trellis2_runtime_ok`** skips reinstall.
@@ -139,8 +150,16 @@ Choose what you’re used to:
 
 **On-start command** (required so ComfyUI actually starts):
 
+- **ComfyBasicPlusTrellis** (`vast-comfyui` image):
+
 ```bash
 bash /usr/local/bin/vast-onstart-comfyui.sh
+```
+
+- **ComfyBasicInstall** (`vast-comfyui-basic` image):
+
+```bash
+bash /usr/local/bin/vast-onstart-comfyui-basic.sh
 ```
 
 If your template still runs Vast’s **`entrypoint.sh`** first (typical for **Jupyter + SSH**), **chain** them so ComfyUI starts after the base entrypoint returns (or use Vast’s documented pattern), e.g.:
