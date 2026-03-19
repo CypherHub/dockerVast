@@ -10,8 +10,9 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     git ca-certificates build-essential cmake pkg-config \
     libgl1 libglib2.0-0 libsm6 libxext6 libgomp1 \
     ffmpeg libavcodec-dev libavformat-dev libavutil-dev \
-    net-tools cron nano wget \
-    && rm -rf /var/lib/apt/lists/*
+    net-tools cron nano wget openssh-server \
+    && rm -rf /var/lib/apt/lists/* \
+    && mkdir -p /root/.ssh && chmod 700 /root/.ssh
 
 COPY pin-torch27.sh /usr/local/bin/pin-torch27.sh
 RUN chmod +x /usr/local/bin/pin-torch27.sh

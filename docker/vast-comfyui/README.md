@@ -224,6 +224,17 @@ pip install /workspace/mypackage.whl
 
 Watch **`/workspace/trellis2-install.log`** and **`/workspace/dinov3-download.log`**. If Trellis install fails, SSH and run **`bash /usr/local/bin/install-trellis2-runtime.sh`** manually, then **`pkill -f "python main.py"`**.
 
+### 4.14 SSH key for remoting in (troubleshooting)
+
+The image includes **openssh-server** and the on-start script starts **sshd** so you can SSH into every new VM. To use it:
+
+1. **Generate an SSH key** on your machine (if you don’t have one):
+   ```bash
+   ssh-keygen -t ed25519 -C "vast-comfyui" -f ~/.ssh/vast_comfyui
+   ```
+2. **Add the public key to Vast** so it is injected into every new instance: Vast dashboard → **SSH Keys** (or account settings) → add the contents of `~/.ssh/vast_comfyui.pub`.
+3. When you rent an instance from this image, Vast will add that key to the container; you can then SSH in (e.g. using the SSH command Vast shows for the instance) to troubleshoot.
+
 ## Notes
 
 - Base image: **`pytorch/pytorch:2.7.0-cuda12.8-cudnn9-runtime`**. If that tag disappears, update `FROM` in `Dockerfile` and re-pin Torch to match Trellis `wheels/Linux/Torch270` (cp312).

@@ -1,6 +1,10 @@
 #!/usr/bin/env bash
 # Vast.ai on-start: map models to persistent /workspace and start ComfyUI in background.
 set -euo pipefail
+# SSH: so the public key you add in Vast is accepted on every new VM.
+if command -v sshd >/dev/null 2>&1; then
+  /usr/sbin/sshd 2>/dev/null || service ssh start 2>/dev/null || true
+fi
 mkdir -p /workspace/models/checkpoints /workspace/models/clip /workspace/models/vae \
   /workspace/models/loras /workspace/models/upscale_models /workspace/models/controlnet \
   /workspace/models/embeddings /workspace/models/configs /workspace/models/vae_approx \
