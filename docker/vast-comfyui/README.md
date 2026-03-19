@@ -228,6 +228,7 @@ If you see repeated restarts in **`comfyui.log`**, the cause is usually a missin
 |---------|-------------|
 | Instance fails to pull image | Set package **public** or add **ghcr.io** auth (§4.6). |
 | ComfyUI won’t load | Read `/workspace/comfyui.log`; confirm port **8188** is published. |
+| `RuntimeError: CUDA error: no kernel image is available for execution on the device` | Your GPU architecture is too old for this Torch/CUDA build (`torch==2.7` + CUDA 12.8). Rent a newer GPU (RTX/Ada/Ampere) or use an older compatibility image (e.g., CUDA 12.4 / older torch) for legacy cards. |
 | Models missing after new instance | Use persistent **`/workspace`**; models live under `/workspace/models`. |
 | ReActor: `inswapper_128.onnx` not in `[]` | On-start copies/downloads **`/workspace/models/insightface/inswapper_128.onnx`** before linking models. Recreate the instance or restart after pulling a newer image; or download that file into `models/insightface` manually. |
 
