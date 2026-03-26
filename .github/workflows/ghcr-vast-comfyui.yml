@@ -1,4 +1,5 @@
 # Publishes docker/vast-comfyui (PlusTrellis) and docker/vast-comfyui-basic (Basic) to GHCR.
+# Each image builds only when its directory (or this workflow) changes — not when the sibling image changes.
 name: GHCR — Vast ComfyUI
 
 on:
@@ -11,16 +12,37 @@ on:
       - ".github/workflows/ghcr-vast-comfyui.yml"
 
 jobs:
-  build-push:
+  changes:
     runs-on: ubuntu-latest
-    strategy:
-      fail-fast: false
-      matrix:
-        include:
-          - context: docker/vast-comfyui
-            image_name: vast-comfyui
-          - context: docker/vast-comfyui-basic
-            image_name: vast-comfyui-basic
+    outputs:
+      vast_comfyui: ${{ steps.pick.outputs.vast_comfyui }}
+      vast_comfyui_basic: ${{ steps.pick.outputs.vast_comfyui_basic }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dorny/paths-filter@v3
+        id: filter
+        with:
+          filters: |
+            vast_comfyui:
+              - 'docker/vast-comfyui/**'
+              - '.github/workflows/ghcr-vast-comfyui.yml'
+            vast_comfyui_basic:
+              - 'docker/vast-comfyui-basic/**'
+              - '.github/workflows/ghcr-vast-comfyui.yml'
+      - id: pick
+        run: |
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            echo "vast_comfyui=true" >> "$GITHUB_OUTPUT"
+            echo "vast_comfyui_basic=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "vast_comfyui=${{ steps.filter.outputs.vast_comfyui }}" >> "$GITHUB_OUTPUT"
+            echo "vast_comfyui_basic=${{ steps.filter.outputs.vast_comfyui_basic }}" >> "$GITHUB_OUTPUT"
+          fi
+
+  build-vast-comfyui:
+    needs: changes
+    if: needs.changes.outputs.vast_comfyui == 'true'
+    runs-on: ubuntu-latest
     permissions:
       contents: read
       packages: write
@@ -41,7 +63,7 @@ jobs:
         id: meta
         uses: docker/metadata-action@v5
         with:
-          images: ghcr.io/${{ github.repository_owner }}/${{ matrix.image_name }}
+          images: ghcr.io/${{ github.repository_owner }}/vast-comfyui
           tags: |
             type=raw,value=latest,enable={{is_default_branch}}
             type=sha,prefix=
@@ -49,9 +71,48 @@ jobs:
       - name: Build and push
         uses: docker/build-push-action@v6
         with:
-          context: ${{ matrix.context }}
+          context: docker/vast-comfyui
           push: true
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
-          cache-from: type=gha,scope=${{ matrix.image_name }}
-          cache-to: type=gha,mode=max,scope=${{ matrix.image_name }}
+          cache-from: type=gha,scope=vast-comfyui
+          cache-to: type=gha,mode=max,scope=vast-comfyui
+
+  build-vast-comfyui-basic:
+    needs: changes
+    if: needs.changes.outputs.vast_comfyui_basic == 'true'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Log in to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Docker metadata
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ghcr.io/${{ github.repository_owner }}/vast-comfyui-basic
+          tags: |
+            type=raw,value=latest,enable={{is_default_branch}}
+            type=sha,prefix=
+
+      - name: Build and push
+        uses: docker/build-push-action@v6
+        with:
+          context: docker/vast-comfyui-basic
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=gha,scope=vast-comfyui-basic
+          cache-to: type=gha,mode=max,scope=vast-comfyui-basic
