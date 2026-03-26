@@ -126,6 +126,25 @@ def _post_webhook(url: str, payload: Dict[str, Any], token: Optional[str]) -> No
     requests.post(url, json=payload, headers=headers, timeout=REQUEST_TIMEOUT).raise_for_status()
 
 
+def _extract_http_error_details(exc: requests.HTTPError) -> Dict[str, Any]:
+    details: Dict[str, Any] = {}
+    response = exc.response
+    if response is None:
+        return details
+
+    details["status_code"] = response.status_code
+    details["url"] = response.url
+
+    try:
+        details["response_json"] = response.json()
+    except ValueError:
+        body = (response.text or "").strip()
+        if body:
+            details["response_text"] = body[:4000]
+
+    return details
+
+
 def handler(job: Dict[str, Any]) -> Dict[str, Any]:
     job_id = str(job.get("id") or "unknown")
     LOGGER.info("Starting job id=%s", job_id)
@@ -173,11 +192,16 @@ def handler(job: Dict[str, Any]) -> Dict[str, Any]:
         return response
     except Exception as exc:
         LOGGER.exception("Job failed id=%s", job_id)
-        return {
+        error_payload: Dict[str, Any] = {
             "ok": False,
             "error_type": type(exc).__name__,
             "error": str(exc),
         }
+        if isinstance(exc, requests.HTTPError):
+            http_error = _extract_http_error_details(exc)
+            if http_error:
+                error_payload["http_error"] = http_error
+        return error_payload
 
 
 if __name__ == "__main__":
