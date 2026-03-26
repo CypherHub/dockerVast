@@ -11,7 +11,10 @@ import runpod
 COMFYUI_HOST = os.environ.get("COMFYUI_HOST", "127.0.0.1")
 COMFYUI_PORT = int(os.environ.get("COMFYUI_PORT", "8188"))
 COMFYUI_BASE_URL = f"http://{COMFYUI_HOST}:{COMFYUI_PORT}"
-REQUEST_TIMEOUT = int(os.environ.get("REQUEST_TIMEOUT_SEC", "60"))
+# HTTP timeout for individual ComfyUI API calls (prompt, history, etc.).
+REQUEST_TIMEOUT = int(os.environ.get("REQUEST_TIMEOUT_SEC", "120"))
+# How long to poll /system_stats until ComfyUI is up (serverless cold start can be minutes).
+COMFYUI_READY_TIMEOUT = int(os.environ.get("COMFYUI_READY_TIMEOUT_SEC", "600"))
 POLL_INTERVAL = float(os.environ.get("COMFYUI_POLL_INTERVAL_SEC", "1.5"))
 MAX_WAIT_SEC = int(os.environ.get("COMFYUI_MAX_WAIT_SEC", "900"))
 LOG_LEVEL = os.environ.get("LOG_LEVEL", "INFO").upper()
@@ -25,7 +28,7 @@ LOGGER = logging.getLogger("runpod-comfyui-worker")
 
 def _wait_for_comfyui() -> None:
     started = time.time()
-    while time.time() - started < REQUEST_TIMEOUT:
+    while time.time() - started < COMFYUI_READY_TIMEOUT:
         try:
             res = requests.get(f"{COMFYUI_BASE_URL}/system_stats", timeout=5)
             if res.ok:
@@ -35,14 +38,18 @@ def _wait_for_comfyui() -> None:
             pass
         time.sleep(1)
     raise RuntimeError(
-        f"ComfyUI is not responding at {COMFYUI_BASE_URL} within {REQUEST_TIMEOUT}s."
+        f"ComfyUI is not responding at {COMFYUI_BASE_URL} within {COMFYUI_READY_TIMEOUT}s."
     )
 
 
 def _submit_prompt(prompt: Dict[str, Any], client_id: str) -> str:
     payload = {"prompt": prompt, "client_id": client_id}
     res = requests.post(f"{COMFYUI_BASE_URL}/prompt", json=payload, timeout=REQUEST_TIMEOUT)
-    res.raise_for_status()
+    if not res.ok:
+        detail = res.text[:8000] if res.text else "(empty body)"
+        # Return the raw ComfyUI response body so the caller can see why /prompt rejected the graph.
+        # (Runpod error payload otherwise only contains "400 Bad Request".)
+        raise RuntimeError(f"ComfyUI /prompt failed {res.status_code}: {detail}")
     data = res.json()
     prompt_id = data.get("prompt_id")
     if not prompt_id:
@@ -60,6 +67,18 @@ def _poll_history(prompt_id: str) -> Dict[str, Any]:
             return body[prompt_id]
         time.sleep(POLL_INTERVAL)
     raise TimeoutError(f"Timed out waiting for prompt {prompt_id} history.")
+
+
+def _strip_workflow_meta(prompt: Dict[str, Any]) -> Dict[str, Any]:
+    """Remove `_meta` from each node; ComfyUI /prompt often rejects UI-only fields."""
+    out: Dict[str, Any] = {}
+    for node_id, node in prompt.items():
+        if not isinstance(node, dict):
+            out[node_id] = node
+            continue
+        cleaned = {k: v for k, v in node.items() if k != "_meta"}
+        out[node_id] = cleaned
+    return out
 
 
 def _normalize_prompt(job_input: Dict[str, Any]) -> Dict[str, Any]:
@@ -87,6 +106,10 @@ def _normalize_prompt(job_input: Dict[str, Any]) -> Dict[str, Any]:
         return job_input
 
     raise ValueError("Input must include `prompt` (dict) or `workflow`.")
+
+
+def _prepare_prompt_for_comfyui(prompt: Dict[str, Any]) -> Dict[str, Any]:
+    return _strip_workflow_meta(prompt)
 
 
 def _validate_webhook_url(url: str) -> str:
@@ -127,6 +150,7 @@ def handler(job: Dict[str, Any]) -> Dict[str, Any]:
         prompt = _normalize_prompt(job_input)
         if not prompt:
             raise ValueError("Prompt/workflow payload is empty.")
+        prompt = _prepare_prompt_for_comfyui(prompt)
 
         client_id = str(job_input.get("client_id", "runpod-comfyui-worker"))
         webhook_url = job_input.get("webhook_url") or os.environ.get("RESULT_WEBHOOK_URL")

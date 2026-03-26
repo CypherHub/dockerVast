@@ -1,0 +1,75 @@
+{
+  "202": {
+    "inputs": {
+      "image_url": "https://placehold.co/600x400/EEE/31343C"
+    },
+    "class_type": "LoadImageFromHttpURL",
+    "_meta": {
+      "title": "Load Image from HTTP URL"
+    }
+  },
+  "203": {
+    "inputs": {
+      "image_url": "https://placehold.co/600x400/EEE/31343C"
+    },
+    "class_type": "LoadImageFromHttpURL",
+    "_meta": {
+      "title": "Load Image from HTTP URL"
+    }
+  },
+  "204": {
+    "inputs": {
+      "enabled": true,
+      "swap_model": "inswapper_128.onnx",
+      "facedetection": "retinaface_resnet50",
+      "face_restore_model": "GFPGANv1.4.pth",
+      "face_restore_visibility": 1,
+      "codeformer_weight": 0.5,
+      "detect_gender_input": "no",
+      "detect_gender_source": "no",
+      "input_faces_index": "0",
+      "source_faces_index": "0",
+      "console_log_level": 1,
+      "input_image": [
+        "203",
+        0
+      ],
+      "source_image": [
+        "202",
+        0
+      ]
+    },
+    "class_type": "ReActorFaceSwap",
+    "_meta": {
+      "title": "ReActor 🌌 Fast Face Swap"
+    }
+  },
+  "206": {
+    "inputs": {
+      "filename_prefix": "ComfyUI",
+      "webhook_url": "https://us-central1-synthlife-1358e.cloudfunctions.net/webhookComfyUI",
+      "metadata": "",
+      "external_uid": "",
+      "images": [
+        "204",
+        0
+      ]
+    },
+    "class_type": "Webhook",
+    "_meta": {
+      "title": "Webhook Image Saver"
+    }
+  },
+  "207": {
+    "inputs": {
+      "images": [
+        "204",
+        0
+      ]
+    },
+    "class_type": "PreviewImage",
+    "_meta": {
+      "title": "Preview Image"
+    }
+  }
+}
