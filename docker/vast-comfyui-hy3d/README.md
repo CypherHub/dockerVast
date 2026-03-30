@@ -7,6 +7,6 @@ Same stack as [`vast-comfyui-basic`](../vast-comfyui-basic/README.md), plus:
 
 **GHCR:** `ghcr.io/<OWNER>/vast-comfyui-hy3d:latest` (and SHA tags from Actions).
 
-**Vast on-start:** `bash /usr/local/bin/vast-onstart-comfyui-hy3d.sh` (no Trellis2/DINO on boot; same pattern as Basic).
+**Vast on-start (required):** `bash /usr/local/bin/vast-onstart-comfyui-hy3d.sh` — **do not** use `vast-onstart-comfyui.sh` (that is the **PlusTrellis** entrypoint from `vast-comfyui` and will install Trellis2/DINOv3 on boot). This image does not ship the Plus script; Hy3D + Basic-style ComfyUI only.
 
 See [../vast-comfyui/README.md](../vast-comfyui/README.md) for ports, SSH, and private GHCR login on Vast.

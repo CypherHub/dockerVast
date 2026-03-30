@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
-# Vast.ai on-start — Hy3D: same as ComfyBasicInstall + seed Hunyuan3D DiT weights into /workspace.
+# Vast.ai on-start — Hy3D only: ComfyBasic-style boot + Hunyuan3D DiT weights into /workspace.
+# No Trellis2/DINOv3 (use this script, not vast-onstart-comfyui.sh from the Plus image).
 set -euo pipefail
 mkdir -p /workspace
 echo "[$(date -Iseconds)] vast-onstart-comfyui-hy3d.sh starting" >> /workspace/onstart.log

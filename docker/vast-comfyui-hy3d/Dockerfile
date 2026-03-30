@@ -19,9 +19,6 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 COPY pin-torch27.sh /usr/local/bin/pin-torch27.sh
 RUN chmod +x /usr/local/bin/pin-torch27.sh
 
-COPY install-trellis2-runtime.sh /usr/local/bin/install-trellis2-runtime.sh
-RUN chmod +x /usr/local/bin/install-trellis2-runtime.sh
-
 WORKDIR /opt
 RUN git clone --depth 1 https://github.com/comfyanonymous/ComfyUI.git ComfyUI \
     && cd ComfyUI \
@@ -51,9 +48,7 @@ RUN chmod +x /tmp/install-hy3d.sh \
     && /usr/local/bin/pin-torch27.sh \
     && rm -f /tmp/install-hy3d.sh /tmp/patch_hy3dshape_pipelines.py
 
-COPY vast-onstart-comfyui.sh /usr/local/bin/vast-onstart-comfyui.sh
-RUN chmod +x /usr/local/bin/vast-onstart-comfyui.sh
-
+# Hy3D-only: no PlusTrellis on-start script and no Trellis2 first-boot installer (see vast-onstart-comfyui-hy3d.sh).
 COPY vast-onstart-comfyui-hy3d.sh /usr/local/bin/vast-onstart-comfyui-hy3d.sh
 RUN chmod +x /usr/local/bin/vast-onstart-comfyui-hy3d.sh
 
