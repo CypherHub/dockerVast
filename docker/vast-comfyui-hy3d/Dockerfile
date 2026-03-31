@@ -6,7 +6,7 @@ FROM ${VAST_BASE_IMAGE}
 
 ENV DEBIAN_FRONTEND=noninteractive
 
-RUN apt-get update && apt-get install -y --no-install-recommends libopengl0 \
+RUN apt-get update && apt-get install -y --no-install-recommends libopengl0 curl ca-certificates \
     && rm -rf /var/lib/apt/lists/*
 
 COPY install-hy3d.sh /tmp/install-hy3d.sh
