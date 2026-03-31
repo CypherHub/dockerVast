@@ -153,6 +153,11 @@ jobs:
             type=raw,value=latest,enable={{is_default_branch}}
             type=sha,prefix=
 
+      # Docker requires lowercase registry paths; repository_owner can be mixed-case (e.g. CypherHub).
+      - name: Base image for Hy3D (lowercase GHCR path)
+        id: hy3d_base
+        run: echo "image=ghcr.io/$(echo '${{ github.repository_owner }}' | tr '[:upper:]' '[:lower:]')/vast-comfyui-basic:latest" >> "$GITHUB_OUTPUT"
+
       - name: Build and push
         uses: docker/build-push-action@v6
         with:
@@ -161,6 +166,6 @@ jobs:
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
           build-args: |
-            VAST_BASE_IMAGE=ghcr.io/${{ github.repository_owner }}/vast-comfyui-basic:latest
+            VAST_BASE_IMAGE=${{ steps.hy3d_base.outputs.image }}
           cache-from: type=gha,scope=vast-comfyui-hy3d
           cache-to: type=gha,mode=max,scope=vast-comfyui-hy3d
