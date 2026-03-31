@@ -13,6 +13,18 @@ clone_branch() {
 
 # Upstream Hy3D example workflows use essentials nodes.
 clone_branch "https://github.com/cubiq/ComfyUI_essentials.git" "ComfyUI_essentials"
+python3 - <<'PY'
+from pathlib import Path
+
+p = Path("/opt/ComfyUI/custom_nodes/ComfyUI_essentials/image.py")
+s = p.read_text()
+old = "self.session = Remover(mode=mode, jit=use_jit)"
+new = "self.session = Remover(mode=mode, jit=False, device='cpu')"
+if old not in s:
+    raise SystemExit("Expected ComfyUI_essentials Session constructor not found")
+p.write_text(s.replace(old, new, 1))
+print("Patched ComfyUI_essentials: force transparent_background to CPU (jit off).")
+PY
 
 rm -rf ComfyUI-Hunyuan3DWrapper
 git clone --depth 1 https://github.com/kijai/ComfyUI-Hunyuan3DWrapper.git ComfyUI-Hunyuan3DWrapper
