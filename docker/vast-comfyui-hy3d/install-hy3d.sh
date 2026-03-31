@@ -32,6 +32,10 @@ cd ComfyUI-Hunyuan3DWrapper
 pip install --no-cache-dir -r requirements.txt
 pip install --no-cache-dir rembg omegaconf timm
 
+# Build and install the custom rasterizer module required by Hunyuan3D wrapper
+cd hy3dgen/texgen/custom_rasterizer
+python setup.py install
+
 python3 /tmp/patch_hy3dshape_pipelines.py hy3dshape/hy3dshape/pipelines.py
 
 cd /opt/ComfyUI
