@@ -160,5 +160,7 @@ jobs:
           push: true
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
+          build-args: |
+            VAST_BASE_IMAGE=ghcr.io/${{ github.repository_owner }}/vast-comfyui-basic:latest
           cache-from: type=gha,scope=vast-comfyui-hy3d
           cache-to: type=gha,mode=max,scope=vast-comfyui-hy3d
