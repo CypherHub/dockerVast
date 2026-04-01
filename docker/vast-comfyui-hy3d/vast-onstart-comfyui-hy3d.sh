@@ -59,6 +59,12 @@ if _port8188_in_use; then
 else
   nohup bash -c '
     cd /opt/ComfyUI && source venv/bin/activate
+
+    # Rasterizer build + install (Hunyuan3D custom node requirement)
+    cd /opt/ComfyUI/custom_nodes/ComfyUI-Hunyuan3DWrapper/hy3dgen/texgen/custom_rasterizer
+    python setup.py install || true
+    cd /opt/ComfyUI
+
     while true; do
       python main.py --listen 0.0.0.0 --port 8188 --highvram >> /workspace/comfyui.log 2>&1
       ec=$?
