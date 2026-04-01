@@ -37,8 +37,10 @@ if [ -z "${CUDA_HOME:-}" ] && [ -d "/usr/local/cuda" ]; then
   export CUDA_HOME="/usr/local/cuda"
 fi
 if command -v nvcc >/dev/null 2>&1 && [ -n "${CUDA_HOME:-}" ]; then
-  # PEP517 isolated builds do not see venv torch; setup.py imports torch at configure time.
-  (cd hy3dgen/texgen/custom_rasterizer && pip install --no-cache-dir --no-build-isolation .)
+  # Use setuptools directly (upstream docs). Pip wheel builds can hide nvcc/ninja errors on CI.
+  export MAX_JOBS="${MAX_JOBS:-2}"
+  export TORCH_CUDA_ARCH_LIST="${TORCH_CUDA_ARCH_LIST:-7.0;7.5;8.0;8.6;8.9;9.0+PTX}"
+  (cd hy3dgen/texgen/custom_rasterizer && python setup.py install)
 else
   echo "CUDA not found (nvcc/CUDA_HOME). Skipping custom_rasterizer build."
 fi
