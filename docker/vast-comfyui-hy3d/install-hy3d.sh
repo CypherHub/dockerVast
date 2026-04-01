@@ -32,14 +32,12 @@ cd ComfyUI-Hunyuan3DWrapper
 pip install --no-cache-dir -r requirements.txt
 pip install --no-cache-dir rembg omegaconf timm
 
-# Build and install the custom rasterizer module required by Hunyuan3D wrapper
-# This module requires CUDA; skip compile if CUDA is not available during image build.
+# Build and install the custom rasterizer module (CUDAExtension — needs nvcc at image build time).
 if [ -z "${CUDA_HOME:-}" ] && [ -d "/usr/local/cuda" ]; then
   export CUDA_HOME="/usr/local/cuda"
 fi
 if command -v nvcc >/dev/null 2>&1 && [ -n "${CUDA_HOME:-}" ]; then
-  cd hy3dgen/texgen/custom_rasterizer
-  python setup.py install
+  (cd hy3dgen/texgen/custom_rasterizer && pip install --no-cache-dir .)
 else
   echo "CUDA not found (nvcc/CUDA_HOME). Skipping custom_rasterizer build."
 fi
